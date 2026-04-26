@@ -14,7 +14,7 @@
       </transition>
 
       <p class="hint">Tippe auf das Herz 💖</p>
-      <button class="install-btn" @click="showInstallHelp = true">
+      <button v-if="!isStandalone" class="install-btn" @click="showInstallHelp = true">
         App installieren ❤️
       </button>
 
@@ -30,14 +30,27 @@
           </button>
         </div>
       </div>
+      <p class="version">{{ version }}</p>
     </div>
   </div>
 </template>
 
 <script setup>
-import { ref } from "vue";
+import { computed, ref } from "vue";
+
+const version = "v1.0.0";
+
+
 
 const showInstallHelp = ref(false);
+
+const isStandalone = computed(() => {
+  return (
+    window.matchMedia("(display-mode: standalone)").matches ||
+    window.navigator.standalone === true
+  );
+});
+
 
 const messages = [
   "Ich liebe dich.",
@@ -68,6 +81,7 @@ function nextMessage() {
 </script>
 
 <style scoped>
+
 .app {
   height: 100vh;
   width: 100vw;
@@ -226,5 +240,11 @@ function nextMessage() {
   border-radius: 20px;
   padding: 24px;
   max-width: 320px;
+}
+
+.version {
+  color: #fff;
+  font-size: 0.7rem;
+  opacity: 0.6;
 }
 </style>
