@@ -1,5 +1,5 @@
 <script setup>
-import { computed, ref } from "vue";
+import { computed, ref, onMounted } from "vue";
 
 
 const version = "v1.0.0";
@@ -60,6 +60,25 @@ const VAPID_PUBLIC_KEY =
 
 const pushStatus = ref("");
 const subscriptionJson = ref("");
+const pushEnabled = ref(false)
+
+onMounted(async () => {
+  if (
+    !("serviceWorker" in navigator) ||
+    !("PushManager" in window)
+  ) {
+    return;
+  }
+
+  const registration =
+    await navigator.serviceWorker.ready;
+
+  const subscription =
+    await registration.pushManager.getSubscription();
+
+  pushEnabled.value =
+    subscription !== null;
+});
 
 
 function urlBase64ToUint8Array(base64String) {
@@ -117,35 +136,28 @@ async function enablePush() {
       return;
     }
 
+    const registration = await navigator.serviceWorker.ready;
 
-    const registration =
-      await navigator.serviceWorker.ready;
-
-
-    let subscription =
-      await registration.pushManager.getSubscription();
-
+    let subscription = await registration.pushManager.getSubscription();
 
     if (!subscription) {
+      subscription = await registration.pushManager.subscribe({
+        userVisibleOnly: true,
 
-      subscription =
-        await registration.pushManager.subscribe({
-          userVisibleOnly: true,
-
-          applicationServerKey:
-            urlBase64ToUint8Array(
-              VAPID_PUBLIC_KEY
-            )
-        });
+        applicationServerKey:
+          urlBase64ToUint8Array(
+            VAPID_PUBLIC_KEY
+          )
+      });
     }
 
+    subscriptionJson.value =JSON.stringify(
+      subscription.toJSON(),
+      null,
+      2
+    );
 
-    subscriptionJson.value =
-      JSON.stringify(
-        subscription.toJSON(),
-        null,
-        2
-      );
+    pushEnabled.value=true;
 
 
     console.log(
@@ -156,13 +168,9 @@ async function enablePush() {
 
     try {
 
-      await navigator.clipboard.writeText(
-        subscriptionJson.value
-      );
+      await navigator.clipboard.writeText(subscriptionJson.value);
 
-
-      pushStatus.value =
-        "Benachrichtigungen aktiviert ❤️ Subscription kopiert.";
+      pushStatus.value = "Benachrichtigungen aktiviert ❤️ Subscription kopiert.";
 
     } catch (clipboardError) {
 
@@ -172,21 +180,15 @@ async function enablePush() {
       );
 
 
-      pushStatus.value =
-        "Benachrichtigungen aktiviert ❤️ Kopiere die Subscription unten.";
+      pushStatus.value = "Benachrichtigungen aktiviert ❤️ Kopiere die Subscription unten.";
     }
 
 
   } catch (error) {
 
-    console.error(
-      "Push registration failed:",
-      error
-    );
+    console.error("Push registration failed:", error );
 
-
-    pushStatus.value =
-      "Fehler beim Aktivieren der Benachrichtigungen.";
+    pushStatus.value = "Fehler beim Aktivieren der Benachrichtigungen.";
   }
 }
 </script>
@@ -242,7 +244,7 @@ async function enablePush() {
       <!-- Push Notifications -->
 
       <button
-        v-if="isStandalone"
+        v-if="isStandalone && !pushEnabled"
         class="install-btn"
         @click="enablePush"
       >
@@ -280,30 +282,16 @@ async function enablePush() {
         class="modal"
       >
         <div class="modal-card">
-
-          <h2>
-            Auf iPhone installieren
-          </h2>
-
-          <p>
-            1. Tippe unten in Safari auf Teilen.
-          </p>
-
-          <p>
-            2. Wähle „Zum Home-Bildschirm“.
-          </p>
-
-          <p>
-            3. Tippe auf „Hinzufügen“.
-          </p>
-
+          <h2>Auf iPhone installieren</h2>
+          <p>1. Tippe unten in Safari auf Teilen.</p>
+          <p>2. Wähle „Zum Home-Bildschirm“.</p>
+          <p>3. Tippe auf „Hinzufügen“.</p>
 
           <button
             @click="showInstallHelp = false"
           >
             Verstanden
           </button>
-
         </div>
       </div>
 
@@ -311,7 +299,6 @@ async function enablePush() {
       <p class="version">
         {{ version }}
       </p>
-
     </div>
   </div>
 </template>
@@ -319,6 +306,7 @@ async function enablePush() {
 
 <style scoped>
 
+         
 .app {
   min-height: 100vh;
   width: 100vw;
