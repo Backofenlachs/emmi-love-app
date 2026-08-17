@@ -41,3 +41,4 @@ __screenshots__/
 # PHP
 /push-sender/vendor/
 /push-sender/secrets.php
+/push-sender/subscription.json
