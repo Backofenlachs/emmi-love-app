@@ -37,3 +37,7 @@ __screenshots__/
 
 # Vite
 *.timestamp-*-*.mjs
+
+# PHP
+/push-sender/vendor/
+/push-sender/secrets.php
